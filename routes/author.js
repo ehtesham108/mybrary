@@ -1,7 +1,9 @@
 const express = require('express')
 const router = express.Router()
+const Book = require('../models/book')
 const Author = require('../models/author')
-// 'Author' is a model of schema 'authorSchema'
+// 'Author' is a schema and its instaces are called its models 
+
 
 //All Authors route
 router.get('/', async (req, res) => {
@@ -48,4 +50,77 @@ router.post('/', async (req, res) => {
       })
     }
   })
-module.exports = router
+
+// View Author
+router.get('/:id', async (req, res) => {
+  try {
+    const author = await Author.findById(req.params.id)
+    const books = await Book.find({ author: author.id }).limit(6).exec()
+    res.render('authors/show', {
+      author: author,
+      booksByAuthor: books
+    })
+  } catch {
+    res.redirect('/')
+  }
+})
+
+
+// Edit Author
+router.get('/:id/edit', async (req, res) => {
+  try {
+    const author = await Author.findById(req.params.id)
+    res.render('authors/edit', { author: author })
+  } catch {
+    res.redirect('/authors')
+  }
+})
+
+// Submit Edit
+router.put('/:id', async (req, res) => {
+  let author
+  try {
+    author = await Author.findById(req.params.id)
+    author.name = req.body.name
+    await author.save()
+    res.redirect(`/authors/${author.id}`)
+  } catch {
+    if (author == null) {
+      res.redirect('/')
+    } else {
+      res.render('authors/edit', {
+        author: author,
+        errorMessage: 'Error updating Author'
+      })
+    }
+  }
+})
+
+// Delete Author
+router.delete('/:id', async (req, res) => {
+  let author
+  try {
+    author = await Author.findById(req.params.id)
+    await author.remove()
+    res.redirect('/authors')
+  } catch {
+    if (author == null) {
+      res.redirect('/')
+    } else {
+      console.log("Delete all books of the author first")
+      res.redirect(`/authors/${author.id}`)
+    }
+  }
+})
+
+  
+  // req.params is an object containing parameter values parsed from the URL path.
+  // For example if you have the route /user/:name, then the "name" from the URL path wil be available as req.params.name.
+  // This object defaults to {}.
+  // Note:
+  // When a route address is defined using a regular expression, each capture group match from the regex is available as
+  // req.params[0], req.params[1], etc. This strategy is also applied to unnamed wild-card matches in string routes such as /file/*.
+  // https://sailsjs.com/documentation/reference/request-req/req-params
+
+  
+  module.exports = router
